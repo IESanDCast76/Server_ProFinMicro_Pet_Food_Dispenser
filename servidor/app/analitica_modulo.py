@@ -24,8 +24,12 @@ class analitica():
 
     def update_data(self, msj):
         msj_vetor = msj.split(",")
-        new_data = {"fecha": msj_vetor[0], "sensor": msj_vetor[1], "valor": float(msj_vetor[2])}
-        self.df = self.df.append(new_data, ignore_index=True)
+        now = datetime.now()
+        date_time = now.strftime('%d.%m.%Y %H:%M:%S')
+        new_data = {"fecha": date_time, "sensor": msj_vetor[0], "valor": float(msj_vetor[1])}
+
+        self.publicar("peso",msj_vetor[1])
+
         self.analitica_descriptiva()
         self.analitica_predictiva()
         self.guardar()
@@ -34,8 +38,7 @@ class analitica():
         print(self.df)
 
     def analitica_descriptiva(self):
-        self.operaciones("temperatura")
-        self.operaciones("densidad")
+        self.operaciones("peso")
 
     def operaciones(self, sensor):
         df_filtrado = self.df[self.df["sensor"] == sensor]
@@ -46,12 +49,17 @@ class analitica():
         self.publicar("mean-{}".format(sensor), str(df_filtrado.mean(skipna = True)))
         self.publicar("median-{}".format(sensor), str(df_filtrado.median(skipna = True)))
         self.publicar("std-{}".format(sensor), str(df_filtrado.std(skipna = True)))
-        if str(df_filtrado.max(skipna = True))>"10":
-            self.publicar("alerta-{}".format(sensor), "falla")
+        
+        if ("min-{}".format(sensor)=="min-peso".format(sensor)) and str(df_filtrado.max(skipna = True))<"5":
+            self.publicar("alerta-peso".format(sensor), "Plato vacío, llene 1 porcion")
+            
+            
+        if ("min-{}".format(sensor)=="min-peso".format(sensor)) and str(df_filtrado.max(skipna = True))<"35":
+            self.publicar("alerta-peso".format(sensor), "Plato vacío, llene 1/2 porcion")
+           
 
     def analitica_predictiva(self):
-        self.regresion("temperatura")
-        self.regresion("densidad")
+        self.regresion("peso")
 
     def regresion(self, sensor):
         df_filtrado = self.df[self.df["sensor"] == sensor]
@@ -76,6 +84,7 @@ class analitica():
             time_format = datetime.utcfromtimestamp(tiempo)
             date_time = time_format.strftime('%d.%m.%Y %H:%M:%S')
             self.publicar("prediccion-{}".format(sensor), "{}".format(prediccion[0]))
+            self.publicar("prediccion_peso-{}".format(sensor), "{:.2f}".format(prediccion[0]))
     @staticmethod
     def publicar(cola, mensaje):
         connexion = pika.BlockingConnection(pika.ConnectionParameters(host='rabbit'))
