@@ -8,7 +8,7 @@ import pika
 
 class analitica():
     ventana = 10
-    pronostico = 5
+    pronostico = 1
     file_name = "data_base.csv"
     servidor = "20.94.41.22"
 
@@ -27,8 +27,21 @@ class analitica():
         now = datetime.now()
         date_time = now.strftime('%d.%m.%Y %H:%M:%S')
         new_data = {"fecha": date_time, "sensor": msj_vetor[0], "valor": float(msj_vetor[1])}
+        self.df = self.df.append(new_data, ignore_index=True)
+
+
 
         self.publicar("peso",msj_vetor[1])
+
+
+        if ((msj_vetor[1])>"10") and ((msj_vetor[1])<"40"):
+            self.publicar("alerta-peso","Plato vacio, llene 1/2 racion")
+        elif ((msj_vetor[1])>"40") and ((msj_vetor[1])<"75"):
+            self.publicar("alerta-peso","Plato vacio, llene 1/4 racion")
+        else:
+            self.publicar("alerta-peso","Plato vacío")
+
+
 
         self.analitica_descriptiva()
         self.analitica_predictiva()
@@ -49,14 +62,11 @@ class analitica():
         self.publicar("mean-{}".format(sensor), str(df_filtrado.mean(skipna = True)))
         self.publicar("median-{}".format(sensor), str(df_filtrado.median(skipna = True)))
         self.publicar("std-{}".format(sensor), str(df_filtrado.std(skipna = True)))
-        
-        if ("min-{}".format(sensor)=="min-peso".format(sensor)) and str(df_filtrado.max(skipna = True))<"5":
-            self.publicar("alerta-peso".format(sensor), "Plato vacío, llene 1 porcion")
-            
-            
-        if ("min-{}".format(sensor)=="min-peso".format(sensor)) and str(df_filtrado.max(skipna = True))<"35":
-            self.publicar("alerta-peso".format(sensor), "Plato vacío, llene 1/2 porcion")
-           
+
+       # if ("max-{}".format(sensor)=="max-peso".format(sensor)) and str(df_filtrado.max(skipna = True))>"75":
+           # self.publicar("alerta-pesomax".format(sensor), "Plato muy lleno")
+        if ("min-{}".format(sensor)=="min-peso".format(sensor)) and str(df_filtrado.min(skipna = True))<"10":
+            self.publicar("alerta-pesomin".format(sensor), "Llene 1 racion")
 
     def analitica_predictiva(self):
         self.regresion("peso")
